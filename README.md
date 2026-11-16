@@ -1,45 +1,70 @@
-# QualiTrack-AI & CQ-ARP
+# QualiTrack AI
 
-**Automated Clinical Quality Performance Metric Validation & Formula Reconciliation Pipeline**
+QualiTrack AI is an intelligent data-quality and governance platform for validating, repairing, and governing structured spreadsheet-driven workflows. It combines ingestion, parsing, rule validation, AI-assisted repair, and policy enforcement into a single pipeline designed for operational trust and explainability.
 
-## 1. Project Purpose
-Acute-care hospitals track operational compliance indicators mandated by The Joint Commission (TJC) across 17 decentralized clinical departments using desktop Microsoft Excel workbooks. Routine row insertions, moved network files, and manual edits trigger explicit formula errors (`#REF!`, `#DIV/0!`, `#VALUE!`) and silent denominator drift (`RANGE_DRIFT`)[cite: 1, 5].
+The project is structured to support enterprise-style quality control for workbook-based data intake, with emphasis on traceability, human-in-the-loop review, role-based access control, and deterministic benchmarking.
 
-**QualiTrack-AI** eliminates manual spreadsheet debugging while preserving strict clinical governance:
-* **QualiTrack-AI (Enterprise Platform):** Provides upload portals, role-based access control (RBAC), a Human-in-the-Loop (HITL) review workbench, an append-only SHA-256 audit ledger, and executive compliance scorecards.
-* **CQ-ARP (Core Processing Engine):** A 5-stage Pipe-and-Filter subsystem that ingests `.xlsx` files, parses formula Abstract Syntax Trees (ASTs), detects semantic table boundary drift, proposes confidence-gated (`>= 0.85`) formula patches, and enforces deterministic regulatory bounds (`0% <= rate <= 100%`).
+## Why QualiTrack AI?
 
----
+Modern data pipelines often fail silently: bad workbook formats, malformed rows, policy violations, and untracked manual overrides create quality debt. QualiTrack AI addresses this by creating a transparent, auditable pipeline that:
 
-## 2. Solution Architecture Summary
-QualiTrack-AI implements the **Data Intelligence** reference architecture using a **Pipe-and-Filter Processing Engine (CQ-ARP)** coupled with a **Service-Oriented Governance Layer**:
-1. **Filter 1 (`IngestionWorker`):** Streams binary `.xlsx`/`.xlsm` files via `openpyxl`, strips VBA macros, and computes a SHA-256 file digest[cite: 5].
-2. **Filter 2 (`DependencyParser`):** Tokenizes formulas into ASTs, builds an in-memory cell dependency DAG, and isolates `#REF!`, `#DIV/0!`, `#VALUE!`, and broken external UNC paths[cite: 5].
-3. **Filter 3 (`SemanticAnchorEngine`):** Maps header/footer table anchors to detect unexpanded ranges (`RANGE_DRIFT`) and halts automation if anchor drift exceeds `30%`[cite: 5].
-4. **Filter 4 (`RepairAgent`):** Synthesizes candidate patches using de-identified structural context, executes a sandboxed Python compiler pre-check, and suppresses proposals scoring below `0.85`[cite: 5].
-5. **Filter 5 (`ConstraintValidator`):** Deterministically enforces `0% <= rate <= 100%` and `numerator <= denominator` across both repaired and healthy cells[cite: 5].
-6. **HITL Controller & Audit Ledger:** Enforces RBAC roles (`Department_Manager`, `Quality_Associate`, `Quality_Director`), requires `DIGEST_VIEWED` verification before batch sign-off, and records every action in a hash-chained `AuditLedger`[cite: 5].
+- ingests workbook files from operational sources
+- parses and normalizes content into structured records
+- validates results against domain-specific rules
+- repairs common defects through targeted automated logic
+- enforces governance rules and access boundaries
+- supports human review when automation cannot resolve uncertainty
 
----
+## Core capabilities
 
-## 3. Repository Structure
-## ```text
+- Data intake and parsing for workbook-style inputs
+- Rule-based validation and anomaly detection
+- Repair workflows to correct frequent quality issues
+- Role-based governance, access enforcement, and approval states
+- Human-in-the-loop intervention for escalated cases
+- Deterministic benchmark generation for repeatable evaluation
+- API-driven integration and automated validation suite
+
+## Architecture overview
+
+QualiTrack AI is organized around a modular processing pipeline and governance layer:
+
+- `src/main.py` — entry point for service orchestration and API wiring
+- `src/models.py` — domain models, enums, and request/response schemas
+- `src/database.py` — persistence layer and operational state management
+- `src/pipeline/` — ingestion, parsing, validation, repair, and quality analysis stages
+- `src/governance/` — RBAC controls and HITL state transitions
+
+The platform is designed to balance automation with accountability: the system may repair issues automatically, but governance safeguards ensure high-risk or sensitive operations remain visible and reviewable.
+
+## Repository structure
+
+```text
 qualitrack-ai/
-├── README.md                   # Project documentation, setup, run, and evaluation guide
-├── LICENSE                     # MIT License
-├── CONTRIBUTING.md             # Contribution rules & architectural guardrails
-├── .gitignore                  # Excludes local SQLite DB, venv, and cache artifacts
-├── requirements.txt            # Python dependencies
+├── README.md
+├── LICENSE
+├── CONTRIBUTING.md
+├── .gitignore
+├── requirements.txt
 ├── data/
-│   └── synthetic_workbooks/    # 17 synthetic departmental .xlsx files + ground_truth.json
-├── docs/                       # Solution Design Report PDF, Presentation, & GenAI Log
+│   └── synthetic_workbooks/
+├── docs/
 ├── scripts/
-│   └── generate_benchmark.py   # Deterministic generator for the 17 workbooks & 40 faults
+│   └── generate_benchmark.py
 ├── src/
-│   ├── main.py                 # FastAPI REST API Gateway
-│   ├── models.py               # Pydantic schemas, roles, and state enums
-│   ├── database.py             # SQLite schema & NFR-07 verification trigger
-│   ├── pipeline/               # CQ-ARP Filters 1–5
-│   └── governance/             # RBAC enforcement & HITL state machine
-└── tests/
-    └── test_qualitrack.py      # Automated validation suite (FR-01..06 & NFR-01..08)
+│   ├── main.py
+│   ├── models.py
+│   ├── database.py
+│   ├── pipeline/
+│   │   ├── anchor_engine.py
+│   │   ├── ingestion.py
+│   │   ├── parser.py
+│   │   ├── repair_agent.py
+│   │   └── validator.py
+│   └── governance/
+│       ├── hitl_controller.py
+│       └── rbac.py
+├── tests/
+│   └── test_qualitrack.py
+└── .github/
+
